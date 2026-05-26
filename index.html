@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>헤르 도서관 · Free Books</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #3fb950;
+  --accent3: #d29922;
+  --rose: #f778ba;
+  --radius: 8px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+/* Nav */
+nav { position:fixed; top:0; width:100%; background:var(--bg2); border-bottom:1px solid var(--border); z-index:100; display:flex; align-items:center; padding:0 20px; height:52px; gap:8px; }
+nav .brand { font-size:18px; font-weight:700; color:var(--text); margin-right:16px; }
+nav .brand span { color:var(--accent); }
+nav a { color:var(--text2); padding:6px 12px; border-radius:var(--radius); font-size:14px; transition:.15s; }
+nav a:hover, nav a.active { color:var(--text); background:var(--bg3); text-decoration:none; }
+.hamburger { display:none; cursor:pointer; background:none; border:none; color:var(--text2); font-size:24px; padding:4px; }
+@media(max-width:640px){
+  .hamburger { display:block; }
+  nav { flex-wrap:wrap; height:auto; min-height:52px; padding:8px 12px; }
+  nav .links { display:none; width:100%; flex-direction:column; gap:2px; padding-top:6px; }
+  nav .links.open { display:flex; }
+  nav a { padding:8px 12px; }
+}
+
+/* Layout */
+main { max-width:1100px; margin:0 auto; padding:72px 16px 40px; }
+.page { display:none; }
+.page.active { display:block; }
+
+/* Cards */
+.card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+.card h2 { font-size:16px; margin-bottom:12px; }
+.card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+
+.book-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; cursor:pointer; transition:transform .15s; }
+.book-card:hover { transform:translateY(-2px); border-color:var(--accent); }
+.book-card img { width:100%; aspect-ratio:3/4; object-fit:cover; display:block; background:var(--bg2); }
+.book-card .info { padding:10px; }
+.book-card .info h3 { font-size:13px; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.book-card .info p { font-size:11px; color:var(--text2); }
+
+/* Search */
+.search-box { display:flex; gap:8px; margin-bottom:16px; }
+.search-box input { flex:1; padding:10px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:14px; outline:none; }
+.search-box input:focus { border-color:var(--accent); }
+.search-box button { padding:10px 20px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius); cursor:pointer; font-size:14px; font-weight:600; }
+.search-box button:hover { opacity:.85; }
+
+/* Reading View */
+#reader-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:200; flex-direction:column; }
+#reader-overlay.open { display:flex; }
+#reader-header { display:flex; align-items:center; padding:12px 20px; background:var(--bg2); border-bottom:1px solid var(--border); gap:12px; }
+#reader-header h2 { flex:1; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#reader-header button { padding:6px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); cursor:pointer; font-size:13px; }
+#reader-header button:hover { background:var(--border); }
+#reader-content { flex:1; overflow-y:auto; padding:32px 20px; max-width:720px; margin:0 auto; line-height:1.8; font-size:16px; white-space:pre-wrap; font-family:Georgia,'Times New Roman',serif; }
+
+/* Tabs */
+.tabs { display:flex; gap:4px; margin-bottom:16px; border-bottom:1px solid var(--border); }
+.tabs button { padding:8px 16px; background:none; border:none; color:var(--text2); cursor:pointer; font-size:14px; border-bottom:2px solid transparent; margin-bottom:-1px; transition:.15s; }
+.tabs button:hover { color:var(--text); }
+.tabs button.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* Forms */
+textarea { width:100%; min-height:100px; padding:10px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:14px; resize:vertical; outline:none; font-family:inherit; }
+textarea:focus { border-color:var(--accent); }
+
+.review-item { padding:12px 0; border-bottom:1px solid var(--border); }
+.review-item:last-child { border-bottom:none; }
+.review-item h4 { font-size:14px; }
+.review-item .meta { font-size:11px; color:var(--text2); margin:4px 0 8px; }
+.review-item .stars { color:var(--accent3); }
+
+/* Poetry */
+.poem-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:12px; cursor:pointer; transition:.15s; }
+.poem-card:hover { border-color:var(--rose); }
+.poem-card h3 { font-size:15px; margin-bottom:4px; }
+.poem-card p { font-size:13px; color:var(--text2); }
+.poem-view { display:none; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:24px; margin-bottom:16px; line-height:2; white-space:pre-wrap; font-family:Georgia,serif; font-size:16px; }
+.poem-view.open { display:block; }
+.poem-view .author { color:var(--text2); font-size:13px; margin-bottom:12px; }
+.poem-view .fav-btn { float:right; padding:4px 12px; background:none; border:1px solid var(--rose); border-radius:var(--radius); color:var(--rose); cursor:pointer; font-size:12px; }
+.poem-view .fav-btn.active { background:var(--rose); color:#fff; }
+
+/* Buttons */
+.btn { padding:6px 14px; border:none; border-radius:var(--radius); cursor:pointer; font-size:13px; font-weight:500; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-primary:hover { opacity:.85; }
+.btn-add { background:var(--accent2); color:#fff; }
+.btn-add:hover { opacity:.85; }
+.btn-del { background:#da3633; color:#fff; }
+.btn-del:hover { opacity:.85; }
+
+/* Empty state */
+.empty { text-align:center; padding:40px 20px; color:var(--text2); }
+.empty p { margin-top:8px; font-size:14px; }
+
+/* Loading */
+.loading { text-align:center; padding:32px; color:var(--text2); }
+.spinner { display:inline-block; width:24px; height:24px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .6s linear infinite; margin-bottom:8px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Toast */
+.toast { position:fixed; bottom:20px; right:20px; background:var(--bg2); border:1px solid var(--accent2); border-radius:var(--radius); padding:12px 20px; font-size:14px; z-index:300; opacity:0; transform:translateY(20px); transition:all .3s; }
+.toast.show { opacity:1; transform:translateY(0); }
+
+/* Featured slider */
+.featured-scroll { display:flex; gap:12px; overflow-x:auto; padding-bottom:8px; scroll-behavior:smooth; }
+.featured-scroll::-webkit-scrollbar { height:4px; }
+.featured-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+.featured-scroll .book-card { min-width:140px; max-width:140px; }
+
+/* Review stars (input) */
+.star-input { display:flex; gap:4px; margin:8px 0; }
+.star-input span { cursor:pointer; font-size:22px; color:var(--border); transition:.1s; }
+.star-input span.active { color:var(--accent3); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand" onclick="goToPage('home')" style="cursor:pointer">📚 <span>헤르</span> 도서관</div>
+  <button class="hamburger" onclick="toggleMenu()">☰</button>
+  <div class="links" id="navLinks">
+    <a href="#" class="active" data-page="home">홈</a>
+    <a href="#" data-page="browse">책 찾기</a>
+    <a href="#" data-page="mybooks">내 책장</a>
+    <a href="#" data-page="reviews">서평</a>
+    <a href="#" data-page="poetry">시 모음</a>
+  </div>
+</nav>
+
+<main>
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="card">
+      <h2>📖 오늘의 추천 도서</h2>
+      <div class="featured-scroll" id="featuredBooks"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+      <div class="card" onclick="goToPage('mybooks')" style="cursor:pointer;transition:.15s;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'"><h2>📚 내 책장</h2><p id="statBooks">0권</p></div>
+      <div class="card" onclick="goToPage('reviews')" style="cursor:pointer;transition:.15s;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'"><h2>✍️ 서평</h2><p id="statReviews">0개</p></div>
+      <div class="card" onclick="goToPage('poetry')" style="cursor:pointer;transition:.15s;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'"><h2>💜 시 즐겨찾기</h2><p id="statPoems">0개</p></div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <h2>🔍 빠른 검색</h2>
+      <div class="search-box">
+        <input type="text" id="quickSearch" placeholder="책 제목이나 저자로 검색..." onkeydown="if(event.key==='Enter') browseSearch()">
+        <button onclick="browseSearch()">검색</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROWSE -->
+  <div class="page" id="page-browse">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="책 제목, 저자, 키워드..." onkeydown="if(event.key==='Enter') browseSearch()">
+      <select id="genreFilter" style="padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;">
+        <option value="">전체</option>
+        <option value="fiction">소설</option>
+        <option value="poetry">시</option>
+        <option value="history">역사</option>
+        <option value="philosophy">철학</option>
+        <option value="science">과학</option>
+        <option value="drama">희곡</option>
+        <option value="children">아동</option>
+      </select>
+      <button onclick="browseSearch()">검색</button>
+    </div>
+    <div id="browseResults"></div>
+  </div>
+
+  <!-- MY BOOKS -->
+  <div class="page" id="page-mybooks">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h2>📚 내 책장</h2>
+      <span id="mybookCount" style="color:var(--text2);font-size:13px;">0권</span>
+    </div>
+    <div id="myBooksList"></div>
+  </div>
+
+  <!-- REVIEWS -->
+  <div class="page" id="page-reviews">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h2>✍️ 내 서평</h2>
+      <button class="btn btn-add" onclick="showReviewForm()">+ 새 서평</button>
+    </div>
+    <div id="reviewFormSection"></div>
+    <div id="reviewsList"></div>
+  </div>
+
+  <!-- POETRY -->
+  <div class="page" id="page-poetry">
+    <div class="tabs">
+      <button class="active" onclick="switchPoetryTab('browse',this)">시 찾기</button>
+      <button onclick="switchPoetryTab('random',this)">랜덤 시</button>
+      <button onclick="switchPoetryTab('fav',this)">내 즐겨찾기</button>
+    </div>
+    <div id="poetryBrowse">
+      <div class="search-box">
+        <input type="text" id="poetrySearch" placeholder="시인 이름 (예: Shakespeare, Poe, Yeats, Emily Dickinson)..." onkeydown="if(event.key==='Enter') searchPoetry()">
+        <button onclick="searchPoetry()">검색</button>
+      </div>
+      <div id="poetryResults"></div>
+    </div>
+    <div id="poetryRandom" style="display:none;">
+      <button class="btn btn-primary" onclick="getRandomPoem()" style="margin-bottom:12px;">🎲 새로운 랜덤 시</button>
+      <div id="randomPoemResult"></div>
+    </div>
+    <div id="poetryFav" style="display:none;">
+      <div id="favPoemsList"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Reader Overlay -->
+<div id="reader-overlay">
+  <div id="reader-header">
+    <h2 id="readerTitle">책 읽기</h2>
+    <button id="readerSaveBtn" onclick="toggleSaveFromReader()">📚 내 책장에 담기</button>
+    <button onclick="closeReader()">✕ 닫기</button>
+  </div>
+  <div id="reader-content"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STATE =====
+const GUTENBERG_BASE = 'https://www.gutenberg.org';
+const POETRY_API = 'https://poetrydb.org';
+
+function loadState(key, def) {
+  try { return JSON.parse(localStorage.getItem('hermes_lib_'+key)) || def; } catch { return def; }
+}
+function saveState(key, val) {
+  localStorage.setItem('hermes_lib_'+key, JSON.stringify(val));
+  syncToServer();
+}
+
+let myBooks = loadState('mybooks', []);
+let reviews = loadState('reviews', []);
+let favPoems = loadState('favpoems', []);
+let currentReaderBook = null;
+
+// ===== SERVER SYNC =====
+async function fetchServerData() {
+  try {
+    const r = await fetch('/data');
+    if (!r.ok) return;
+    const data = await r.json();
+    // Server has data → sync to localStorage (server is authoritative)
+    if (data.mybooks && data.mybooks.length > 0) {
+      myBooks = data.mybooks;
+      localStorage.setItem('hermes_lib_mybooks', JSON.stringify(myBooks));
+    } else if (myBooks.length > 0) {
+      // Local has data but server doesn't → push local to server
+      syncToServer();
+    }
+    if (data.reviews && data.reviews.length > 0) {
+      reviews = data.reviews;
+      localStorage.setItem('hermes_lib_reviews', JSON.stringify(reviews));
+    } else if (reviews.length > 0) {
+      syncToServer();
+    }
+    if (data.favpoems && data.favpoems.length > 0) {
+      favPoems = data.favpoems;
+      localStorage.setItem('hermes_lib_favpoems', JSON.stringify(favPoems));
+    } else if (favPoems.length > 0) {
+      syncToServer();
+    }
+  } catch(e) { /* server not available, use localStorage only */ }
+}
+async function syncToServer() {
+  try {
+    await fetch('/data', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({mybooks: myBooks, reviews, favpoems})
+    });
+  } catch(e) { /* server offline, data stays in localStorage */ }
+}
+
+// ===== FEATURED (well-known free books with Gutenberg IDs) =====
+const FEATURED = [
+  {id:1342, title:'Pride and Prejudice', author:'Jane Austen'},
+  {id:11, title:'Alice\'s Adventures in Wonderland', author:'Lewis Carroll'},
+  {id:84, title:'Frankenstein', author:'Mary Shelley'},
+  {id:1661, title:'The Adventures of Sherlock Holmes', author:'Arthur Conan Doyle'},
+  {id:43, title:'Dracula', author:'Bram Stoker'},
+  {id:74, title:'The Adventures of Tom Sawyer', author:'Mark Twain'},
+  {id:1342, title:'Pride and Prejudice', author:'Jane Austen'},
+  {id:2701, title:'Moby Dick', author:'Herman Melville'},
+  {id:1260, title:'Jane Eyre', author:'Charlotte Brontë'},
+  {id:1400, title:'Great Expectations', author:'Charles Dickens'},
+  {id:158, title:'Emma', author:'Jane Austen'},
+  {id:1952, title:'The Yellow Wallpaper', author:'Charlotte Perkins Gilman'},
+  {id:768, title:'Wuthering Heights', author:'Emily Brontë'},
+  {id:174, title:'The Picture of Dorian Gray', author:'Oscar Wilde'},
+  {id:844, title:'The Importance of Being Earnest', author:'Oscar Wilde'},
+  {id:36, title:'The War of the Worlds', author:'H.G. Wells'},
+  {id:120, title:'Treasure Island', author:'R.L. Stevenson'},
+  {id:1998, title:'The Jungle Book', author:'Rudyard Kipling'},
+  {id:23042, title:'Siddhartha', author:'Hermann Hesse'},
+  {id:2591, title:'Grimm\'s Fairy Tales', author:'Brothers Grimm'},
+  {id:5200, title:'Metamorphosis', author:'Franz Kafka'},
+  {id:6130, title:'The Iliad', author:'Homer'},
+  {id:30254, title:'The Republic', author:'Plato'},
+  {id:5000, title:'The Art of War', author:'Sun Tzu'},
+  {id:1497, title:'The Republic', author:'Plato'},
+];
+
+// unique by id
+const FEATURED_UNIQUE = Object.values(Object.fromEntries(FEATURED.map(b=>[b.id,b])));
+
+// ===== NAV =====
+document.querySelectorAll('nav a[data-page]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('nav a').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+a.dataset.page).classList.add('active');
+    document.getElementById('navLinks').classList.remove('open');
+    // refresh dynamic content
+    if (a.dataset.page==='mybooks') renderMyBooks();
+    if (a.dataset.page==='reviews') renderReviews();
+    if (a.dataset.page==='home') updateStats();
+  });
+});
+function toggleMenu() { document.getElementById('navLinks').classList.toggle('open'); }
+function goToPage(page) {
+  document.querySelectorAll('nav a[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-'+page));
+  document.getElementById('navLinks').classList.remove('open');
+  if (page==='mybooks') renderMyBooks();
+  if (page==='reviews') renderReviews();
+  if (page==='poetry') { /* keep current tab */ }
+  if (page==='home') updateStats();
+}
+
+// ===== HOME =====
+function initFeatured() {
+  const el = document.getElementById('featuredBooks');
+  el.innerHTML = FEATURED_UNIQUE.map(b => `
+    <div class="book-card" onclick="openReader(${b.id},'${escapeStr(b.title)}','${escapeStr(b.author)}')">
+      <img src="https://covers.openlibrary.org/b/olid/OL${b.id<10000?'M':'W'}${b.id}-M.jpg" alt="${escapeHtml(b.title)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22220%22><rect fill=%22%2321262d%22 width=%22160%22 height=%22220%22/><text x=%2280%22 y=%22110%22 text-anchor=%22middle%22 fill=%22%238b949e%22 font-size=%2214%22>${escapeHtml(b.title[0])}</text></svg>'">
+      <div class="info"><h3>${escapeHtml(b.title)}</h3><p>${escapeHtml(b.author)}</p></div>
+    </div>
+  `).join('');
+}
+function updateStats() {
+  document.getElementById('statBooks').textContent = myBooks.length + '권';
+  document.getElementById('statReviews').textContent = reviews.length + '개';
+  document.getElementById('statPoems').textContent = favPoems.length + '개';
+}
+
+// ===== BROWSE (Open Library) =====
+async function browseSearch() {
+  const q = document.getElementById('searchInput').value.trim() || document.getElementById('quickSearch').value.trim();
+  const genre = document.getElementById('genreFilter').value;
+  if (!q) return toast('검색어를 입력해주세요');
+  const el = document.getElementById('browseResults');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div><p>검색 중...</p></div>';
+  try {
+    let url = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=40`;
+    if (genre) url += `&subject=${genre}`;
+    const r = await fetch(url, {headers:{'User-Agent':'HermesLibrary/1.0 (bearj@local)'}});
+    const data = await r.json();
+    const docs = data.docs || [];
+    if (!docs.length) { el.innerHTML = '<div class="empty"><p>📭 검색 결과가 없습니다</p></div>'; return; }
+    // filter for books with some public access
+    const books = docs.filter(d => d.cover_i || d.first_publish_year);
+    el.innerHTML = '<div class="card-grid">' + books.map(d => {
+      const key = d.key || '';
+      const cover = d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : '';
+      const title = d.title || '제목 없음';
+      const author = d.author_name ? d.author_name[0] : '작자 미상';
+      const year = d.first_publish_year || '';
+      return `<div class="book-card" onclick="openOLReader('${escapeStr(key)}','${escapeStr(title)}','${escapeStr(author)}')">
+        <img src="${cover}" alt="${escapeHtml(title)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22220%22><rect fill=%22%2321262d%22 width=%22160%22 height=%22220%22/><text x=%2280%22 y=%22110%22 text-anchor=%22middle%22 fill=%22%238b949e%22 font-size=%2214%22>${escapeHtml(title[0])}</text></svg>'">
+        <div class="info"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(author)}${year ? ' · '+year : ''}</p></div>
+      </div>`;
+    }).join('') + '</div>';
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><p>❌ 검색 오류: ${e.message}</p></div>`;
+  }
+}
+
+// ===== READER (via Project Gutenberg) =====
+async function openReader(gutenbergId, title, author) {
+  const overlay = document.getElementById('reader-overlay');
+  overlay.classList.add('open');
+  document.getElementById('readerTitle').textContent = title + ' - ' + author;
+  document.getElementById('reader-content').innerHTML = '<div class="loading"><div class="spinner"></div><p>책을 불러오는 중...</p></div>';
+  document.getElementById('readerSaveBtn').textContent = myBooks.some(b=>b.gid===gutenbergId) ? '✅ 내 책장에 있음' : '📚 내 책장에 담기';
+  currentReaderBook = {gid:gutenbergId, title, author};
+  try {
+    const resp = await fetch(`/proxy/gutenberg/${gutenbergId}`);
+    if (!resp.ok) throw new Error('HTTP '+resp.status);
+    let text = await resp.text();
+    if (!text.startsWith('Proxy error') && text.length > 100) {
+      document.getElementById('reader-content').textContent = text;
+    } else {
+      throw new Error(text.substring(0,100) || 'Empty response');
+    }
+  } catch(e) {
+    document.getElementById('reader-content').innerHTML = `<div class="empty"><p>❌ 책을 불러올 수 없습니다<br><span style="font-size:12px">${e.message}</span></p><p style="margin-top:12px;font-size:13px;color:var(--text2)">Gutenberg ID: ${gutenbergId} · 다른 방식으로 시도해보세요</p></div>`;
+  }
+}
+
+async function openOLReader(olKey, title, author) {
+  // Try to find Gutenberg ID from Open Library
+  const overlay = document.getElementById('reader-overlay');
+  overlay.classList.add('open');
+  document.getElementById('readerTitle').textContent = title + ' - ' + author;
+  document.getElementById('reader-content').innerHTML = '<div class="loading"><div class="spinner"></div><p>책 정보를 찾는 중...</p></div>';
+  currentReaderBook = {olKey, title, author};
+  document.getElementById('readerSaveBtn').textContent = myBooks.some(b=>b.olKey===olKey) ? '✅ 내 책장에 있음' : '📚 내 책장에 담기';
+  try {
+    // Try to find via Open Library works API
+    const workId = olKey.replace('/works/', '');
+    const resp = await fetch(`https://openlibrary.org${olKey}.json`, {headers:{'User-Agent':'HermesLibrary/1.0'}});
+    if (!resp.ok) throw new Error('Open Library lookup failed');
+    const work = await resp.json();
+    // Look for Gutenberg ID in the response
+    let gid = null;
+    // Check identifiers
+    if (work.identifiers && work.identifiers.gutenberg) {
+      gid = work.identifiers.gutenberg[0];
+    }
+    if (gid) {
+      document.getElementById('reader-content').innerHTML = '<div class="loading"><div class="spinner"></div><p>Gutenberg에서 찾았습니다, 불러오는 중...</p></div>';
+      return openReader(parseInt(gid), title, author);
+    }
+    // Try searching Gutendex
+    const searchResp = await fetch(`https://gutendex.com/books?search=${encodeURIComponent(title)}`);
+    if (searchResp.ok) {
+      const searchData = await searchResp.json();
+      if (searchData.results && searchData.results.length > 0) {
+        const match = searchData.results.find(b => 
+          b.title.toLowerCase().includes(title.toLowerCase().split(':')[0].trim().toLowerCase())
+        );
+        if (match) {
+          document.getElementById('reader-content').innerHTML = '<div class="loading"><div class="spinner"></div><p>Gutendex 매칭 성공, 불러오는 중...</p></div>';
+          return openReader(match.id, match.title, match.authors?.[0]?.name || author);
+        }
+      }
+    }
+    // Fallback: show metadata
+    document.getElementById('reader-content').innerHTML = `
+      <div class="empty">
+        <p>📖 "${escapeHtml(title)}"</p>
+        <p style="color:var(--text2);margin-top:8px">${escapeHtml(author)}</p>
+        <hr style="border:none;border-top:1px solid var(--border);margin:20px 0">
+        <p style="font-size:14px">이 책은 Gutenberg에서 찾을 수 없습니다.<br>Open Library에서 더 자세한 정보를 확인해보세요.</p>
+        <p style="margin-top:12px"><a href="https://openlibrary.org${olKey}" target="_blank">🔗 Open Library에서 보기</a></p>
+        <p style="margin-top:8px;font-size:13px;color:var(--text2)">또는 Gutenberg ID를 알고 있다면 아래에 입력:</p>
+        <div class="search-box" style="max-width:300px;margin:10px auto">
+          <input type="number" id="manualGid" placeholder="Gutenberg ID" style="flex:1">
+          <button onclick="openReader(parseInt(document.getElementById('manualGid').value),'${escapeStr(title)}','${escapeStr(author)}')">읽기</button>
+        </div>
+      </div>`;
+  } catch(e) {
+    document.getElementById('reader-content').innerHTML = `<div class="empty"><p>❌ 오류: ${e.message}</p></div>`;
+  }
+}
+
+function closeReader() {
+  document.getElementById('reader-overlay').classList.remove('open');
+  document.getElementById('reader-content').textContent = '';
+  currentReaderBook = null;
+}
+
+function toggleSaveFromReader() {
+  if (!currentReaderBook) return;
+  const idx = myBooks.findIndex(b => 
+    (currentReaderBook.gid && b.gid===currentReaderBook.gid) ||
+    (currentReaderBook.olKey && b.olKey===currentReaderBook.olKey)
+  );
+  if (idx >= 0) {
+    myBooks.splice(idx, 1);
+    saveState('mybooks', myBooks);
+    document.getElementById('readerSaveBtn').textContent = '📚 내 책장에 담기';
+    toast('책장에서 제거됨');
+  } else {
+    myBooks.push({...currentReaderBook, addedAt: Date.now()});
+    saveState('mybooks', myBooks);
+    document.getElementById('readerSaveBtn').textContent = '✅ 내 책장에 있음';
+    toast('📚 책장에 담겼습니다!');
+  }
+}
+
+// ===== MY BOOKS =====
+function renderMyBooks() {
+  const el = document.getElementById('myBooksList');
+  const count = document.getElementById('mybookCount');
+  count.textContent = myBooks.length + '권';
+  if (!myBooks.length) {
+    el.innerHTML = '<div class="empty"><p>📭 아직 책이 없습니다</p><p style="font-size:13px;margin-top:6px">책 찾기 메뉴에서 책을 검색하고 읽어보세요</p></div>';
+    return;
+  }
+  el.innerHTML = myBooks.map((b,i) => `
+    <div class="card" style="display:flex;align-items:center;gap:12px;">
+      <div style="flex:1">
+        <h3 style="font-size:15px">${escapeHtml(b.title)}</h3>
+        <p style="font-size:13px;color:var(--text2)">${escapeHtml(b.author)}</p>
+        <p style="font-size:11px;color:var(--text2);margin-top:4px">${new Date(b.addedAt).toLocaleDateString('ko-KR')} 추가</p>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary" onclick="openReader(${b.gid || 0},'${escapeStr(b.title)}','${escapeStr(b.author)}')">📖 읽기</button>
+        <button class="btn btn-del" onclick="removeBook(${i})">제거</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeBook(idx) {
+  myBooks.splice(idx, 1);
+  saveState('mybooks', myBooks);
+  renderMyBooks();
+  toast('책장에서 제거됨');
+}
+
+// ===== REVIEWS =====
+let reviewRating = 0;
+function renderReviews() {
+  const el = document.getElementById('reviewsList');
+  if (!reviews.length) {
+    el.innerHTML = '<div class="empty"><p>✍️ 아직 작성한 서평이 없습니다</p></div>';
+    return;
+  }
+  el.innerHTML = reviews.map((r,i) => `
+    <div class="review-item">
+      <h4>${escapeHtml(r.title)} <span style="font-weight:400;color:var(--text2)">- ${escapeHtml(r.author)}</span></h4>
+      <div class="meta">${new Date(r.date).toLocaleDateString('ko-KR')}</div>
+      <div class="stars">${'★'.repeat(r.rating||0)}${'☆'.repeat(5-(r.rating||0))}</div>
+      <p style="font-size:13px;margin-top:4px;">${escapeHtml(r.text)}</p>
+      <button class="btn btn-del" style="margin-top:6px;font-size:11px" onclick="deleteReview(${i})">삭제</button>
+    </div>
+  `).join('');
+}
+
+function showReviewForm() {
+  reviewRating = 0;
+  document.getElementById('reviewFormSection').innerHTML = `
+    <div class="card">
+      <h3>새 서평 작성</h3>
+      <input type="text" id="reviewTitle" placeholder="책 제목" style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);margin-bottom:8px;">
+      <input type="text" id="reviewAuthor" placeholder="저자" style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);margin-bottom:8px;">
+      <div class="star-input" id="starInput">
+        ${[1,2,3,4,5].map(n => `<span onclick="setReviewRating(${n})">☆</span>`).join('')}
+      </div>
+      <textarea id="reviewText" placeholder="서평을 작성해주세요..." style="margin-bottom:8px"></textarea>
+      <button class="btn btn-primary" onclick="saveReview()">저장</button>
+      <button class="btn" onclick="document.getElementById('reviewFormSection').innerHTML=''" style="margin-left:4px">취소</button>
+    </div>`;
+}
+
+function setReviewRating(n) {
+  reviewRating = n;
+  document.querySelectorAll('#starInput span').forEach((s,i) => {
+    s.textContent = i < n ? '★' : '☆';
+    s.classList.toggle('active', i < n);
+  });
+}
+
+function saveReview() {
+  const title = document.getElementById('reviewTitle').value.trim();
+  const author = document.getElementById('reviewAuthor').value.trim();
+  const text = document.getElementById('reviewText').value.trim();
+  if (!title || !text) return toast('제목과 서평 내용을 입력해주세요');
+  reviews.unshift({title, author, text, rating: reviewRating, date: Date.now()});
+  saveState('reviews', reviews);
+  document.getElementById('reviewFormSection').innerHTML = '';
+  renderReviews();
+  toast('✍️ 서평이 저장되었습니다!');
+}
+
+function deleteReview(idx) {
+  reviews.splice(idx, 1);
+  saveState('reviews', reviews);
+  renderReviews();
+  toast('서평이 삭제됨');
+}
+
+// ===== POETRY =====
+function switchPoetryTab(tab, btn) {
+  document.querySelectorAll('#page-poetry .tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['poetryBrowse','poetryRandom','poetryFav'].forEach(id => {
+    document.getElementById(id).style.display = id === 'poetry'+tab.charAt(0).toUpperCase()+tab.slice(1) ? 'block' : 'none';
+  });
+  if (tab==='fav') renderFavPoems();
+}
+
+async function searchPoetry() {
+  const q = document.getElementById('poetrySearch').value.trim();
+  if (!q) return toast('시인 이름을 입력해주세요');
+  const el = document.getElementById('poetryResults');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div><p>시를 찾는 중...</p></div>';
+  try {
+    const r = await fetch(`${POETRY_API}/author/${encodeURIComponent(q)}`);
+    if (!r.ok) throw new Error('찾을 수 없음');
+    const poems = await r.json();
+    if (!poems || !poems.length) throw new Error('결과 없음');
+    el.innerHTML = poems.slice(0,40).map(p => `
+      <div class="poem-card" onclick="showPoem('${escapeStr(p.title)}','${escapeStr(p.author)}',this)">
+        <h3>${escapeHtml(p.title)}</h3>
+        <p>${escapeHtml(p.author)} · ${p.linecount}줄</p>
+      </div>
+    `).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><p>❌ '${escapeHtml(q)}'에 대한 시를 찾을 수 없습니다</p></div>`;
+  }
+}
+
+async function showPoem(title, author, cardEl) {
+  const parent = cardEl ? cardEl.parentNode : document.getElementById('poetryResults');
+  // Check if already showing
+  const existing = parent.querySelector('.poem-view.open');
+  if (existing) existing.classList.remove('open');
+  try {
+    const r = await fetch(`${POETRY_API}/title/${encodeURIComponent(title)}`);
+    if (!r.ok) throw new Error('Not found');
+    const poems = await r.json();
+    if (!poems || !poems.length) throw new Error('Empty');
+    const p = poems[0];
+    const isFav = favPoems.some(f => f.title === title && f.author === author);
+    const container = document.createElement('div');
+    container.className = 'poem-view open';
+    container.innerHTML = `
+      <button class="fav-btn ${isFav?'active':''}" onclick="toggleFavPoem('${escapeStr(title)}','${escapeStr(author)}',this)">${isFav ? '💜' : '🤍'} 즐겨찾기</button>
+      <h3>${escapeHtml(p.title)}</h3>
+      <div class="author">${escapeHtml(p.author)}</div>
+      <div>${escapeHtml(p.lines.join('\n'))}</div>
+    `;
+    if (cardEl) {
+      cardEl.after(container);
+    } else {
+      parent.appendChild(container);
+    }
+  } catch(e) {
+    toast('시를 불러올 수 없습니다');
+  }
+}
+
+async function getRandomPoem() {
+  const el = document.getElementById('randomPoemResult');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const r = await fetch(`${POETRY_API}/random/1`);
+    const poems = await r.json();
+    if (!poems || !poems.length) throw new Error('Empty');
+    const p = poems[0];
+    const isFav = favPoems.some(f => f.title === p.title && f.author === p.author);
+    el.innerHTML = `
+      <div class="poem-view open" style="display:block">
+        <button class="fav-btn ${isFav?'active':''}" onclick="toggleFavPoem('${escapeStr(p.title)}','${escapeStr(p.author)}',this)">${isFav ? '💜' : '🤍'} 즐겨찾기</button>
+        <h3>${escapeHtml(p.title)}</h3>
+        <div class="author">${escapeHtml(p.author)}</div>
+        <div>${escapeHtml(p.lines.join('\n'))}</div>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><p>❌ 랜덤 시를 불러올 수 없습니다</p></div>';
+  }
+}
+
+function toggleFavPoem(title, author, btn) {
+  const idx = favPoems.findIndex(f => f.title === title && f.author === author);
+  if (idx >= 0) {
+    favPoems.splice(idx, 1);
+    btn.textContent = '🤍 즐겨찾기';
+    btn.classList.remove('active');
+    toast('즐겨찾기 제거됨');
+  } else {
+    favPoems.push({title, author});
+    btn.textContent = '💜 즐겨찾기';
+    btn.classList.add('active');
+    toast('💜 즐겨찾기에 추가!');
+  }
+  saveState('favpoems', favPoems);
+}
+
+function renderFavPoems() {
+  const el = document.getElementById('favPoemsList');
+  if (!favPoems.length) {
+    el.innerHTML = '<div class="empty"><p>💜 아직 즐겨찾는 시가 없습니다</p><p style="font-size:13px;margin-top:6px">시 모음에서 시를 찾아 즐겨찾기에 추가해보세요</p></div>';
+    return;
+  }
+  el.innerHTML = favPoems.map(p => `
+    <div class="poem-card" onclick="showPoem('${escapeStr(p.title)}','${escapeStr(p.author)}',this)">
+      <h3>${escapeHtml(p.title)}</h3>
+      <p>${escapeHtml(p.author)}</p>
+    </div>
+  `).join('');
+}
+
+// ===== UTILITIES =====
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, function(m) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+  });
+}
+function escapeStr(s) {
+  if (!s) return '';
+  return String(s).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ===== INIT =====
+(async function init() {
+  initFeatured();
+  await fetchServerData();
+  updateStats();
+})();
+</script>
+</body>
+</html>
