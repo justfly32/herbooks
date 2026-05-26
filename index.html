@@ -679,6 +679,22 @@ function deleteReview(idx) {
 }
 
 // ===== POETRY =====
+// 한국 고전시 (저작권 만료, 공개 도메인)
+const KOREAN_POEMS = [
+  {title:'진달래꽃', author:'김소월', lines:['나 보기가 역겨워','가실 때에는','말없이 고이 보내 드리오리다.','','영변에 약산','진달래꽃','아름 따다 가실 길에 뿌리오리다.','','가시는 걸음 걸음','놓인 그 꽃을','사뿐히 즈려 밟고 가시옵소서.','','나 보기가 역겨워','가실 때에는','죽어도 아니 눈물 흘리오리다.']},
+  {title:'초혼', author:'김소월', lines:['산산이 부서진 이름이여!','허공중에 헤어진 이름이여!','불러도 대답 없는 이름이여!','','부르다가 내가 죽을 이름이여!','','입에 마르는 가슴에','하나 있는 그리움','쉬지 않는 발걸음','','사랑하던 그 사람이여!','사랑하던 그 사람이여!']},
+  {title:'서시', author:'윤동주', lines:['죽는 날까지 하늘을 우러러','한 점 부끄럼이 없기를,','잎새에 이는 바람에도','나는 괴로워했다.','','별을 노래하는 마음으로','모든 죽어가는 것을 사랑해야지.','그리고 나한테 주어진 길을','걸어가야겠다.','','오늘 밤에도 별이 바람에 스치운다.']},
+  {title:'별 헤는 밤', author:'윤동주', lines:['계절이 지나가는 하늘에는','가을로 가득 차 있습니다.','','나는 아무 걱정도 없이','가을 속의 별들을 다 헤일 듯합니다.','','가슴 속에 하나 둘 새겨지는 별을','이제 다 못 헤는 것은','쉬이 아침이 오는 까닭이요,','내일 밤이 남은 까닭이요,','아직 나의 청춘이 다하지 않은 까닭입니다.','','별 하나에 추억과','별 하나에 사랑과','별 하나에 쓸쓸함과','별 하나에 동경과','별 하나에 시와','별 하나에 어머니, 어머니.']},
+  {title:'자화상', author:'윤동주', lines:['산모퉁이를 돌아 논가 외딴 우물을','홀로 찾아가선 가만히 들여다봅니다.','','우물 속에는 달이 밝고 구름이 흐르고','하늘이 펼치고 파아란 바람이 불고','가을이 있습니다.','','그리고 한 사나이가 있습니다.','어쩐지 그 사나이가 미워져 돌아갑니다.','','돌아가다 생각하니 그 사나이가 가엾어집니다.','도로 가 들여다보니 사나이는 그대로 있습니다.','','다시 그 사나이가 미워져 돌아갑니다.','돌아가다 생각하니 그 사나이가 그리워집니다.','','우물 속에는 달이 밝고 구름이 흐르고','하늘이 펼치고 파아란 바람이 불고','가을이 있고 추억처럼 사나이가 있습니다.']},
+  {title:'님의 침묵', author:'한용운', lines:['님은 갔습니다. 아아, 사랑하는 나의 님은 갔습니다.','푸른 산빛을 깨치고 단풍나무 숲을 향하여 난 작은 길을 걸어서,','차마 떨치고 갔습니다.','','황금의 꽃같이 굳고 빛나던 옛 맹세는 차디찬 티끌이 되어서','한숨의 미풍에 날아갔습니다.','','날카로운 첫 키스의 추억은 나의 운명의 지침을 돌려 놓고,','뒷걸음쳐서 사라졌습니다.','','나는 향기로운 님의 말소리에 귀먹고, 꽃다운 님의 얼굴에 눈멀었습니다.','사랑도 사람의 일이라, 만날 때와 떠날 때가 있나니,','','대뜸 작별의 때가 이르렀음을 어찌 알았으리요.','그러나 이별을 씻지 못할 만큼 사랑에 거룩함이 없었던 탓이리니,','','진정 나는 님이 아니더냐?','나는 가마니, 님은 오히려 가는 것이 아니냐?','','아아, 나는 님을 보내지 아니하였습니다.','아니, 보내지 아니하였습니다.','','님은 갔습니다. 그러나 나는 님을 보내지 아니하였습니다.','사랑하는 나의 님은 갔습니다만,','나는 님을 보내지 아니하였습니다.']},
+  {title:'청포도', author:'이육사', lines:['내 고장 칠월은','청포도가 익어가는 시절.','','이 마을 전설이 주저리주저리 열리고','먼 데 하늘이 꿈꾸며 알알이 들어와 박혀,','','하늘 밑 푸른 바다가 가슴을 열고','돛단배가 곱게 밀려서 오면,','','내가 바라는 손님은 고달픈 몸으로','청포를 입고 찾아온다고 했으니,','','내 그를 맞아 이 포도를 따 먹으면','두 사람의 가슴은 한여름으로 푸르겠지.']},
+  {title:'광야', author:'이육사', lines:['까마득한 날에','하늘이 처음 열리고','어디서 뜨거운 숨결이','땅을 감돌았다.','','아침을 찾아 일어선','나의 발길은','맨 처음 굳은 약속을','찾아 나선다.','','시린 가슴에','얼음 같은 혈액이','굳은 의지를','모를 리 없으랴.','','차라리 나는 매서운','칼날 위에 서서','피의 붉은 꽃을','피워 보리라.','','암흑 속에서도','네가 있고','네가 없어도','나는 살아 있다.']},
+  {title:'사슴', author:'노천명', lines:['모가지가 길어서 슬픈 짐승이여.','','언제나 점잖고','편 말이 없는 짐승이여.','','봄이면 연둣빛 피어나다가','가을이면 잎새에 물들어 가는','','너의 외로운 목숨이','차라리 나는 사슴이 되고 싶다.']},
+  {title:'모란이 피기까지는', author:'김영랑', lines:['모란이 피기까지는','나는 아직 나의 봄을 기다리고 있을 테요.','','모란이 뚝뚝 떨어져 버린 날','나는 비로소 봄을 여읜 설움에 잠길 테요.','','오월 어느 날, 그 하루 무덥던 날','떨어져 누운 꽃잎마저 시들어 버리고는','','천지에 모란은 자취도 없어지고','뻗쳐 오르던 내 보람 서운케 무너졌느니.','','모란이 지고 말면 그뿐, 내 한 해는 다 가고 말아,','삼백 예순 날 하냥 섭섭해 우울해.','','그래도 모란이 피기까지는','나는 아직 기다리고 있을 테요,','참아서 설움을 참고 있을 테요.']},
+  {title:'가을의 기도', author:'김현승', lines:['가을은','기도의 계절입니다.','','낙엽이 질 때','나는 기도합니다.','','나무가 헐벗어도','새가 떠나도','','나는 기도합니다.','가을은','기도의 계절입니다.']},
+  {title:'길', author:'김기림', lines:['내가 가는 이 길이','어디로 통하는 길인지','나는 알 수 없습니다.','','그러나 나는 갑니다.','날이 저물고','비가 내려도','','나는 갑니다.','','길이 끝나는 곳에도','길이 있습니다.','','나는 이 길을 갑니다.']},
+];
+
 function switchPoetryTab(tab, btn) {
   document.querySelectorAll('#page-poetry .tabs button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
@@ -689,24 +705,69 @@ function switchPoetryTab(tab, btn) {
 }
 
 async function searchPoetry() {
-  const q = document.getElementById('poetrySearch').value.trim();
+  const q = document.getElementById('poetrySearch').value.trim().toLowerCase();
   if (!q) return toast('시인 이름을 입력해주세요');
   const el = document.getElementById('poetryResults');
   el.innerHTML = '<div class="loading"><div class="spinner"></div><p>시를 찾는 중...</p></div>';
+
+  // 한국 시인 검색
+  const krResults = KOREAN_POEMS.filter(p =>
+    p.author.toLowerCase().includes(q) || p.title.toLowerCase().includes(q)
+  );
+
+  // PoetryDB 검색
+  let enResults = [];
   try {
     const r = await fetch(`${POETRY_API}/author/${encodeURIComponent(q)}`);
-    if (!r.ok) throw new Error('찾을 수 없음');
-    const poems = await r.json();
-    if (!poems || !poems.length) throw new Error('결과 없음');
-    el.innerHTML = poems.slice(0,40).map(p => `
+    if (r.ok) {
+      const poems = await r.json();
+      enResults = poems || [];
+    }
+  } catch {}
+
+  if (!krResults.length && !enResults.length) {
+    el.innerHTML = `<div class="empty"><p>❌ '${escapeHtml(q)}'에 대한 시를 찾을 수 없습니다</p></div>`;
+    return;
+  }
+
+  let html = '';
+  if (krResults.length) {
+    html += '<p style="font-size:13px;color:var(--accent2);margin:0 0 6px">🇰🇷 한국 시</p>';
+    html += krResults.map(p => `
+      <div class="poem-card" onclick="showKoreanPoem('${escapeStr(p.title)}','${escapeStr(p.author)}')">
+        <h3>${escapeHtml(p.title)}</h3>
+        <p>${escapeHtml(p.author)}</p>
+      </div>
+    `).join('');
+  }
+  if (enResults.length) {
+    if (krResults.length) html += '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">';
+    html += '<p style="font-size:13px;color:var(--text2);margin:0 0 6px">🌐 PoetryDB English</p>';
+    html += enResults.slice(0, 30).map(p => `
       <div class="poem-card" onclick="showPoem('${escapeStr(p.title)}','${escapeStr(p.author)}',this)">
         <h3>${escapeHtml(p.title)}</h3>
         <p>${escapeHtml(p.author)} · ${p.linecount}줄</p>
       </div>
     `).join('');
-  } catch(e) {
-    el.innerHTML = `<div class="empty"><p>❌ '${escapeHtml(q)}'에 대한 시를 찾을 수 없습니다</p></div>`;
   }
+  el.innerHTML = html;
+}
+
+function showKoreanPoem(title, author) {
+  const p = KOREAN_POEMS.find(x => x.title === title && x.author === author);
+  if (!p) return toast('시를 찾을 수 없습니다');
+  const isFav = favPoems.some(f => f.title === p.title && f.author === p.author);
+  const el = document.getElementById('poetryResults');
+  const existing = el.querySelector('.poem-view.open');
+  if (existing) existing.classList.remove('open');
+  const container = document.createElement('div');
+  container.className = 'poem-view open';
+  container.innerHTML = `
+    <button class="fav-btn ${isFav?'active':''}" onclick="toggleFavPoem('${escapeStr(p.title)}','${escapeStr(p.author)}',this)">${isFav ? '💜' : '🤍'} 즐겨찾기</button>
+    <h3>${escapeHtml(p.title)}</h3>
+    <div class="author">🇰🇷 ${escapeHtml(p.author)}</div>
+    <div style="font-family:'Nanum Gothic','Malgun Gothic',sans-serif">${escapeHtml(p.lines.join('\n'))}</div>`;
+  el.appendChild(container);
 }
 
 async function showPoem(title, author, cardEl) {
@@ -743,6 +804,19 @@ async function getRandomPoem() {
   const el = document.getElementById('randomPoemResult');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
+    // 50% 확률로 한국 시, 50% 확률로 PoetryDB 영어 시
+    if (Math.random() < 0.5 && KOREAN_POEMS.length > 0) {
+      const p = KOREAN_POEMS[Math.floor(Math.random() * KOREAN_POEMS.length)];
+      const isFav = favPoems.some(f => f.title === p.title && f.author === p.author);
+      el.innerHTML = `
+        <div class="poem-view open" style="display:block">
+          <button class="fav-btn ${isFav?'active':''}" onclick="toggleFavPoem('${escapeStr(p.title)}','${escapeStr(p.author)}',this)">${isFav ? '💜' : '🤍'} 즐겨찾기</button>
+          <h3>${escapeHtml(p.title)}</h3>
+          <div class="author">🇰🇷 ${escapeHtml(p.author)}</div>
+          <div style="font-family:'Nanum Gothic','Malgun Gothic',sans-serif">${escapeHtml(p.lines.join('\n'))}</div>
+        </div>`;
+      return;
+    }
     const r = await fetch(`${POETRY_API}/random/1`);
     const poems = await r.json();
     if (!poems || !poems.length) throw new Error('Empty');
@@ -782,12 +856,15 @@ function renderFavPoems() {
     el.innerHTML = '<div class="empty"><p>💜 아직 즐겨찾는 시가 없습니다</p><p style="font-size:13px;margin-top:6px">시 모음에서 시를 찾아 즐겨찾기에 추가해보세요</p></div>';
     return;
   }
-  el.innerHTML = favPoems.map(p => `
-    <div class="poem-card" onclick="showPoem('${escapeStr(p.title)}','${escapeStr(p.author)}',this)">
+el.innerHTML = favPoems.map(p => {
+    const isKr = KOREAN_POEMS.some(k => k.title === p.title && k.author === p.author);
+    const clickFn = isKr ? `showKoreanPoem('${escapeStr(p.title)}','${escapeStr(p.author)}')` : `showPoem('${escapeStr(p.title)}','${escapeStr(p.author)}',this)`;
+    return `
+    <div class="poem-card" onclick="${clickFn}">
       <h3>${escapeHtml(p.title)}</h3>
-      <p>${escapeHtml(p.author)}</p>
-    </div>
-  `).join('');
+      <p>${escapeHtml(p.author)}${isKr ? ' 🇰🇷' : ''}</p>
+    </div>`;
+  }).join('');
 }
 
 // ===== UTILITIES =====
