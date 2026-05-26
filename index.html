@@ -286,6 +286,7 @@ const FEATURED = [
   {id:30254, title:'The Republic', author:'Plato'},
   {id:5000, title:'The Art of War', author:'Sun Tzu'},
   {id:1497, title:'The Republic', author:'Plato'},
+  {id:64317, title:'The Great Gatsby', author:'F. Scott Fitzgerald'},
 ];
 
 // unique by id
@@ -464,10 +465,10 @@ async function openReader(gutenbergId, title, author) {
       throw new Error('Empty response');
     }
   } catch(e) {
-    const msg = e.message.includes('404') ? '이 책은 아직 저장소에 등록되지 않았습니다'
+const msg = e.message.includes('404') ? '이 책은 아직 서재에 등록되지 않았습니다'
       : e.message.includes('Failed to fetch') ? '네트워크 오류'
       : e.message;
-    document.getElementById('reader-content').innerHTML = `<div class="empty"><p>❌ ${msg}</p><p style="margin-top:12px;font-size:13px;color:var(--text2)">Gutenberg ID: ${gutenbergId}<br>서재에 등록된 책(Featured 목록)만 읽을 수 있습니다. 새로운 책은 직접 추가해주세요.</p></div>`;
+    document.getElementById('reader-content').innerHTML = `<div class="empty"><p>❌ ${msg}</p><p style="margin-top:12px;font-size:13px;color:var(--text2)">Gutenberg ID: ${gutenbergId}</p><p style="margin-top:8px;font-size:13px;color:var(--accent2)">📖 이 책을 읽고 싶다면 헤르에게 Gutenberg ID ${gutenbergId}를 알려주세요 — 바로 추가해드립니다!</p></div>`;
   }
 }
 
