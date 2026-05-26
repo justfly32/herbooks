@@ -245,8 +245,10 @@ textarea:focus { border-color:var(--accent); }
 <script>
 // ===== STATE =====
 const POETRY_API = 'https://poetrydb.org';
-// CORS proxy for Project Gutenberg (GitHub Pages compatible)
-const CORS_PROXY = 'https://corsproxy.io/?url=';
+// GitHub Pages에서 프록시 백엔드 URL (로컬 서버 또는 ngrok)
+const PROXY_BASE = 'https://wikipedia-shredding-tadpole.ngrok-free.dev';
+// 로컬에서 직접 열 때는: '/proxy/gutenberg/'
+// GitHub Pages에서: PROXY_BASE + '/proxy/gutenberg/'
 
 function loadState(key, def) {
   try { return JSON.parse(localStorage.getItem('hermes_lib_'+key)) || def; } catch { return def; }
@@ -375,7 +377,10 @@ async function openReader(gutenbergId, title, author) {
   document.getElementById('readerSaveBtn').textContent = myBooks.some(b=>b.gid===gutenbergId) ? '✅ 내 책장에 있음' : '📚 내 책장에 담기';
   currentReaderBook = {gid:gutenbergId, title, author};
   try {
-    const resp = await fetch(`${CORS_PROXY}${encodeURIComponent('https://www.gutenberg.org/cache/epub/' + gutenbergId + '/pg' + gutenbergId + '.txt')}`);
+    const proxyUrl = window.location.origin.includes('github.io') || window.location.protocol === 'https:'
+      ? `${PROXY_BASE}/proxy/gutenberg/${gutenbergId}`
+      : `/proxy/gutenberg/${gutenbergId}`;
+    const resp = await fetch(proxyUrl);
     if (!resp.ok) throw new Error('HTTP '+resp.status);
     let text = await resp.text();
     if (!text.startsWith('Proxy error') && text.length > 100) {
