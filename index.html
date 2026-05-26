@@ -446,7 +446,48 @@ async function browseSearch() {
   }
 }
 
-// ===== READER (via Project Gutenberg) =====
+// ===== READER (via Project Gutenberg + localStorage cache) =====
+const ALLORIGINS_PROXY = 'https://api.allorigins.win/raw?url=';
+const BOOK_CACHE_PREFIX = 'hermes_book_';
+
+// localStorage에 책 텍스트 캐시 (최대 30권)
+function getCachedBook(gid) {
+  try {
+    const d = localStorage.getItem(BOOK_CACHE_PREFIX + gid);
+    return d ? JSON.parse(d).text : null;
+  } catch { return null; }
+}
+function setCachedBook(gid, text) {
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(BOOK_CACHE_PREFIX));
+    if (keys.length >= 30) keys.sort().slice(0, 5).forEach(k => localStorage.removeItem(k));
+    localStorage.setItem(BOOK_CACHE_PREFIX + gid, JSON.stringify({text, at:Date.now()}));
+  } catch { /* localStorage full */ }
+}
+
+async function fetchBookText(gutenbergId) {
+  // 1. localStorage 캐시 확인
+  const cached = getCachedBook(gutenbergId);
+  if (cached) return cached;
+
+  // 2. GitHub raw (서재 캐시)
+  const gitResp = await fetch(`${GIT_BOOKS_BASE}/pg${gutenbergId}.txt`);
+  if (gitResp.ok) {
+    const text = await gitResp.text();
+    if (text.length > 100) { setCachedBook(gutenbergId, text); return text; }
+  }
+
+  // 3. allorigins CORS 프록시 → Gutenberg 직접 다운로드
+  const proxyUrl = `${ALLORIGINS_PROXY}${encodeURIComponent('https://www.gutenberg.org/cache/epub/'+gutenbergId+'/pg'+gutenbergId+'.txt')}`;
+  const proxyResp = await fetch(proxyUrl);
+  if (proxyResp.ok) {
+    const text = await proxyResp.text();
+    if (text.length > 100) { setCachedBook(gutenbergId, text); return text; }
+  }
+
+  throw new Error('NOT_FOUND');
+}
+
 async function openReader(gutenbergId, title, author) {
   const overlay = document.getElementById('reader-overlay');
   overlay.classList.add('open');
@@ -455,20 +496,14 @@ async function openReader(gutenbergId, title, author) {
   document.getElementById('readerSaveBtn').textContent = myBooks.some(b=>b.gid===gutenbergId) ? '✅ 내 책장에 있음' : '📚 내 책장에 담기';
   currentReaderBook = {gid:gutenbergId, title, author};
   try {
-    // GitHub raw CDN에서 책 텍스트 불러오기 (CORS 지원)
-    const resp = await fetch(`${GIT_BOOKS_BASE}/pg${gutenbergId}.txt`);
-    if (!resp.ok) throw new Error('HTTP '+resp.status);
-    let text = await resp.text();
-    if (text.length > 100) {
-      document.getElementById('reader-content').textContent = text;
-    } else {
-      throw new Error('Empty response');
-    }
+    const text = await fetchBookText(gutenbergId);
+    document.getElementById('reader-content').textContent = text;
   } catch(e) {
-const msg = e.message.includes('404') ? '이 책은 아직 서재에 등록되지 않았습니다'
+    const msg = e.message === 'NOT_FOUND'
+      ? '이 책을 Gutenberg에서 가져올 수 없습니다'
       : e.message.includes('Failed to fetch') ? '네트워크 오류'
       : e.message;
-    document.getElementById('reader-content').innerHTML = `<div class="empty"><p>❌ ${msg}</p><p style="margin-top:12px;font-size:13px;color:var(--text2)">Gutenberg ID: ${gutenbergId}</p><p style="margin-top:8px;font-size:13px;color:var(--accent2)">📖 이 책을 읽고 싶다면 헤르에게 Gutenberg ID ${gutenbergId}를 알려주세요 — 바로 추가해드립니다!</p></div>`;
+    document.getElementById('reader-content').innerHTML = `<div class="empty"><p>❌ ${msg}</p><p style="margin-top:12px;font-size:13px;color:var(--text2)">Gutenberg ID: ${gutenbergId}</p><p style="margin-top:8px;font-size:13px;color:var(--accent2)">다른 책을 선택하거나 헤르에게 Gutenberg ID ${gutenbergId}를 알려주세요.</p></div>`;
   }
 }
 
