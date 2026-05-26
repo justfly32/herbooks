@@ -333,35 +333,115 @@ function updateStats() {
   document.getElementById('statPoems').textContent = favPoems.length + '개';
 }
 
-// ===== BROWSE (Open Library) =====
+// ===== BROWSE (Open Library + Cached Books + Korean support) =====
+// Search cached books by title/author
+function searchCachedBooks(q) {
+  const lower = q.toLowerCase();
+  return FEATURED_UNIQUE.filter(b =>
+    b.title.toLowerCase().includes(lower) ||
+    b.author.toLowerCase().includes(lower)
+  );
+}
+
+function renderBookResults(books, containerEl, prefix) {
+  if (!books.length) return;
+  containerEl.innerHTML += '<div class="card-grid">' + books.map((d, i) => {
+    const gid = d.gid || d.id;
+    const key = d.key || '';
+    const cover = d.cover_i
+      ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`
+      : gid
+        ? `https://covers.openlibrary.org/b/olid/OL${gid<10000?'M':'W'}${gid}-M.jpg`
+        : '';
+    const title = d.title || '제목 없음';
+    const author = d.author || d.author_name?.[0] || '작자 미상';
+    const year = d.first_publish_year || '';
+    // cached books → openReader (gid known); open library → openOLReader
+    const clickHandler = gid
+      ? `openReader(${gid},'${escapeStr(title)}','${escapeStr(author)}')`
+      : `openOLReader('${escapeStr(key)}','${escapeStr(title)}','${escapeStr(author)}')`;
+    return `<div class="book-card" onclick="${clickHandler}">
+      <img src="${cover}" alt="${escapeHtml(title)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22220%22><rect fill=%22%2321262d%22 width=%22160%22 height=%22220%22/><text x=%2280%22 y=%22110%22 text-anchor=%22middle%22 fill=%22%238b949e%22 font-size=%2214%22>${escapeHtml(title[0])}</text></svg>'">
+      <div class="info"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(author)}${year ? ' · '+year : ''}</p></div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
 async function browseSearch() {
   const q = document.getElementById('searchInput').value.trim() || document.getElementById('quickSearch').value.trim();
   const genre = document.getElementById('genreFilter').value;
   if (!q) return toast('검색어를 입력해주세요');
+  // Navigate to browse page
+  goToPage('browse');
   const el = document.getElementById('browseResults');
   el.innerHTML = '<div class="loading"><div class="spinner"></div><p>검색 중...</p></div>';
+
+  let openLibBooks = [];
+  let transNote = '';
+  const hasKorean = /[가-힣]/.test(q);
+
+  // 1. Try Open Library
   try {
     let url = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=40`;
     if (genre) url += `&subject=${genre}`;
-    const r = await fetch(url, {headers:{'User-Agent':'HermesLibrary/1.0 (bearj@local)'}});
+    const r = await fetch(url, {headers:{'User-Agent':'HermesLibrary/1.0'}});
     const data = await r.json();
-    const docs = data.docs || [];
-    if (!docs.length) { el.innerHTML = '<div class="empty"><p>📭 검색 결과가 없습니다</p></div>'; return; }
-    // filter for books with some public access
-    const books = docs.filter(d => d.cover_i || d.first_publish_year);
-    el.innerHTML = '<div class="card-grid">' + books.map(d => {
-      const key = d.key || '';
-      const cover = d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : '';
-      const title = d.title || '제목 없음';
-      const author = d.author_name ? d.author_name[0] : '작자 미상';
-      const year = d.first_publish_year || '';
-      return `<div class="book-card" onclick="openOLReader('${escapeStr(key)}','${escapeStr(title)}','${escapeStr(author)}')">
-        <img src="${cover}" alt="${escapeHtml(title)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22220%22><rect fill=%22%2321262d%22 width=%22160%22 height=%22220%22/><text x=%2280%22 y=%22110%22 text-anchor=%22middle%22 fill=%22%238b949e%22 font-size=%2214%22>${escapeHtml(title[0])}</text></svg>'">
-        <div class="info"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(author)}${year ? ' · '+year : ''}</p></div>
-      </div>`;
-    }).join('') + '</div>';
+    openLibBooks = (data.docs || []).filter(d => d.cover_i || d.first_publish_year);
+
+    // 2. Korean → English auto-translate fallback
+    if (!openLibBooks.length && hasKorean) {
+      el.innerHTML = '<div class="loading"><div class="spinner"></div><p>🔤 한글→영어 변환 중...</p></div>';
+      try {
+        const tr = await fetch(
+          `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ko&tl=en&dt=t&q=${encodeURIComponent(q)}`
+        );
+        const td = await tr.json();
+        const enQ = td?.[0]?.[0]?.[0];
+        if (enQ && enQ !== q) {
+          const url2 = `https://openlibrary.org/search.json?q=${encodeURIComponent(enQ)}&limit=40`;
+          const r2 = await fetch(url2, {headers:{'User-Agent':'HermesLibrary/1.0'}});
+          const data2 = await r2.json();
+          openLibBooks = (data2.docs || []).filter(d => d.cover_i || d.first_publish_year);
+          if (openLibBooks.length) transNote = `🔍 "${q}" → "${enQ}" (자동 변환)`;
+        }
+      } catch(transErr) { /* translation failed, continue */ }
+    }
   } catch(e) {
-    el.innerHTML = `<div class="empty"><p>❌ 검색 오류: ${e.message}</p></div>`;
+    /* Open Library unavailable, fall through to cached */
+  }
+
+  // 3. Always search cached books
+  const cached = searchCachedBooks(q);
+
+  // 4. Render combined results
+  el.innerHTML = '';
+  if (transNote) {
+    const note = document.createElement('p');
+    note.style.cssText = 'font-size:13px;color:var(--text2);margin:0 0 8px';
+    note.textContent = transNote;
+    el.appendChild(note);
+  }
+
+  let hasResults = false;
+
+  if (openLibBooks.length) {
+    hasResults = true;
+    const section = document.createElement('div');
+    section.innerHTML = '<p style="font-size:13px;color:var(--text2);margin:0 0 6px">🌐 Open Library 검색결과</p>';
+    el.appendChild(section);
+    renderBookResults(openLibBooks, el);
+  }
+
+  if (cached.length) {
+    hasResults = true;
+    const section = document.createElement('div');
+    section.innerHTML = '<p style="font-size:13px;color:var(--accent2);margin:12px 0 6px">📚 서재에서 찾은 책 (바로 읽기 가능)</p>';
+    el.appendChild(section);
+    renderBookResults(cached, el);
+  }
+
+  if (!hasResults) {
+    el.innerHTML = '<div class="empty"><p>📭 검색 결과가 없습니다</p></div>';
   }
 }
 
