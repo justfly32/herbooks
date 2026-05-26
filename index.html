@@ -244,59 +244,21 @@ textarea:focus { border-color:var(--accent); }
 
 <script>
 // ===== STATE =====
-const GUTENBERG_BASE = 'https://www.gutenberg.org';
 const POETRY_API = 'https://poetrydb.org';
+// CORS proxy for Project Gutenberg (GitHub Pages compatible)
+const CORS_PROXY = 'https://corsproxy.io/?url=';
 
 function loadState(key, def) {
   try { return JSON.parse(localStorage.getItem('hermes_lib_'+key)) || def; } catch { return def; }
 }
 function saveState(key, val) {
   localStorage.setItem('hermes_lib_'+key, JSON.stringify(val));
-  syncToServer();
 }
 
 let myBooks = loadState('mybooks', []);
 let reviews = loadState('reviews', []);
 let favPoems = loadState('favpoems', []);
 let currentReaderBook = null;
-
-// ===== SERVER SYNC =====
-async function fetchServerData() {
-  try {
-    const r = await fetch('/data');
-    if (!r.ok) return;
-    const data = await r.json();
-    // Server has data → sync to localStorage (server is authoritative)
-    if (data.mybooks && data.mybooks.length > 0) {
-      myBooks = data.mybooks;
-      localStorage.setItem('hermes_lib_mybooks', JSON.stringify(myBooks));
-    } else if (myBooks.length > 0) {
-      // Local has data but server doesn't → push local to server
-      syncToServer();
-    }
-    if (data.reviews && data.reviews.length > 0) {
-      reviews = data.reviews;
-      localStorage.setItem('hermes_lib_reviews', JSON.stringify(reviews));
-    } else if (reviews.length > 0) {
-      syncToServer();
-    }
-    if (data.favpoems && data.favpoems.length > 0) {
-      favPoems = data.favpoems;
-      localStorage.setItem('hermes_lib_favpoems', JSON.stringify(favPoems));
-    } else if (favPoems.length > 0) {
-      syncToServer();
-    }
-  } catch(e) { /* server not available, use localStorage only */ }
-}
-async function syncToServer() {
-  try {
-    await fetch('/data', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({mybooks: myBooks, reviews, favpoems})
-    });
-  } catch(e) { /* server offline, data stays in localStorage */ }
-}
 
 // ===== FEATURED (well-known free books with Gutenberg IDs) =====
 const FEATURED = [
@@ -413,7 +375,7 @@ async function openReader(gutenbergId, title, author) {
   document.getElementById('readerSaveBtn').textContent = myBooks.some(b=>b.gid===gutenbergId) ? '✅ 내 책장에 있음' : '📚 내 책장에 담기';
   currentReaderBook = {gid:gutenbergId, title, author};
   try {
-    const resp = await fetch(`/proxy/gutenberg/${gutenbergId}`);
+    const resp = await fetch(`${CORS_PROXY}${encodeURIComponent('https://www.gutenberg.org/cache/epub/' + gutenbergId + '/pg' + gutenbergId + '.txt')}`);
     if (!resp.ok) throw new Error('HTTP '+resp.status);
     let text = await resp.text();
     if (!text.startsWith('Proxy error') && text.length > 100) {
@@ -736,7 +698,6 @@ function toast(msg) {
 // ===== INIT =====
 (async function init() {
   initFeatured();
-  await fetchServerData();
   updateStats();
 })();
 </script>
