@@ -245,10 +245,8 @@ textarea:focus { border-color:var(--accent); }
 <script>
 // ===== STATE =====
 const POETRY_API = 'https://poetrydb.org';
-// GitHub Pages에서 프록시 백엔드 URL (로컬 서버 또는 ngrok)
-const PROXY_BASE = 'https://wikipedia-shredding-tadpole.ngrok-free.dev';
-// 로컬에서 직접 열 때는: '/proxy/gutenberg/'
-// GitHub Pages에서: PROXY_BASE + '/proxy/gutenberg/'
+// GitHub Pages: 책 텍스트는 저장소에 포함된 books/ 에서 raw.githubusercontent.com 으로 제공 (CORS 지원)
+const GIT_BOOKS_BASE = 'https://raw.githubusercontent.com/justfly32/herbooks/main/books';
 
 function loadState(key, def) {
   try { return JSON.parse(localStorage.getItem('hermes_lib_'+key)) || def; } catch { return def; }
@@ -270,7 +268,6 @@ const FEATURED = [
   {id:1661, title:'The Adventures of Sherlock Holmes', author:'Arthur Conan Doyle'},
   {id:43, title:'Dracula', author:'Bram Stoker'},
   {id:74, title:'The Adventures of Tom Sawyer', author:'Mark Twain'},
-  {id:1342, title:'Pride and Prejudice', author:'Jane Austen'},
   {id:2701, title:'Moby Dick', author:'Herman Melville'},
   {id:1260, title:'Jane Eyre', author:'Charlotte Brontë'},
   {id:1400, title:'Great Expectations', author:'Charles Dickens'},
@@ -377,19 +374,20 @@ async function openReader(gutenbergId, title, author) {
   document.getElementById('readerSaveBtn').textContent = myBooks.some(b=>b.gid===gutenbergId) ? '✅ 내 책장에 있음' : '📚 내 책장에 담기';
   currentReaderBook = {gid:gutenbergId, title, author};
   try {
-    const proxyUrl = window.location.origin.includes('github.io') || window.location.protocol === 'https:'
-      ? `${PROXY_BASE}/proxy/gutenberg/${gutenbergId}`
-      : `/proxy/gutenberg/${gutenbergId}`;
-    const resp = await fetch(proxyUrl);
+    // GitHub raw CDN에서 책 텍스트 불러오기 (CORS 지원)
+    const resp = await fetch(`${GIT_BOOKS_BASE}/pg${gutenbergId}.txt`);
     if (!resp.ok) throw new Error('HTTP '+resp.status);
     let text = await resp.text();
-    if (!text.startsWith('Proxy error') && text.length > 100) {
+    if (text.length > 100) {
       document.getElementById('reader-content').textContent = text;
     } else {
-      throw new Error(text.substring(0,100) || 'Empty response');
+      throw new Error('Empty response');
     }
   } catch(e) {
-    document.getElementById('reader-content').innerHTML = `<div class="empty"><p>❌ 책을 불러올 수 없습니다<br><span style="font-size:12px">${e.message}</span></p><p style="margin-top:12px;font-size:13px;color:var(--text2)">Gutenberg ID: ${gutenbergId} · 다른 방식으로 시도해보세요</p></div>`;
+    const msg = e.message.includes('404') ? '이 책은 아직 저장소에 등록되지 않았습니다'
+      : e.message.includes('Failed to fetch') ? '네트워크 오류'
+      : e.message;
+    document.getElementById('reader-content').innerHTML = `<div class="empty"><p>❌ ${msg}</p><p style="margin-top:12px;font-size:13px;color:var(--text2)">Gutenberg ID: ${gutenbergId}<br>서재에 등록된 책(Featured 목록)만 읽을 수 있습니다. 새로운 책은 직접 추가해주세요.</p></div>`;
   }
 }
 
@@ -437,13 +435,9 @@ async function openOLReader(olKey, title, author) {
         <p>📖 "${escapeHtml(title)}"</p>
         <p style="color:var(--text2);margin-top:8px">${escapeHtml(author)}</p>
         <hr style="border:none;border-top:1px solid var(--border);margin:20px 0">
-        <p style="font-size:14px">이 책은 Gutenberg에서 찾을 수 없습니다.<br>Open Library에서 더 자세한 정보를 확인해보세요.</p>
+        <p style="font-size:14px">이 책은 현재 서재(books/)에 등록되어 있지 않습니다.</p>
         <p style="margin-top:12px"><a href="https://openlibrary.org${olKey}" target="_blank">🔗 Open Library에서 보기</a></p>
-        <p style="margin-top:8px;font-size:13px;color:var(--text2)">또는 Gutenberg ID를 알고 있다면 아래에 입력:</p>
-        <div class="search-box" style="max-width:300px;margin:10px auto">
-          <input type="number" id="manualGid" placeholder="Gutenberg ID" style="flex:1">
-          <button onclick="openReader(parseInt(document.getElementById('manualGid').value),'${escapeStr(title)}','${escapeStr(author)}')">읽기</button>
-        </div>
+        <p style="margin-top:8px;font-size:13px;color:var(--text2)">서재에 등록된 책(Featured)만 읽을 수 있습니다. 새로운 책을 추가하려면 GitHub 저장소의 books/ 폴더에 Gutenberg 텍스트 파일을 추가해주세요.</p>
       </div>`;
   } catch(e) {
     document.getElementById('reader-content').innerHTML = `<div class="empty"><p>❌ 오류: ${e.message}</p></div>`;
